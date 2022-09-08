@@ -63,6 +63,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _saveImage(BuildContext context) async {
     final image = await notifier.renderImage();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
