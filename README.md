@@ -2,9 +2,7 @@
 
 Drawing board using flutter scribble package. Awesome for sketching stuff.
 
-
-![Screenshot_20220908_145540](https://user-images.githubusercontent.com/53033498/189093234-ea6cd289-9877-4316-8893-ceaded7d8b76.png)
-
+![Screenshot 2022-09-08 145815](https://user-images.githubusercontent.com/53033498/189093931-b4fb0c87-17af-480d-b2c6-17b53731b6e2.png)
 
 Webview 
 
