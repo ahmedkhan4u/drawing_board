@@ -53,7 +53,6 @@ class _HomePageState extends State<HomePage> {
                   _buildColorToolbar(context),
                   const VerticalDivider(width: 32),
                   _buildStrokeToolbar(context),
-                  const Expanded(child: SizedBox()),
                   _buildPointerModeSwitcher(context),
                 ],
               ),
