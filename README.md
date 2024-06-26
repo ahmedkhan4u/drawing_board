@@ -1,8 +1,8 @@
-# drawing_board
-# scribble
+# Drawing Board
+# Scribble
 **Drawing Board**
 
-Drawing board using flutter scribble package. Awesome for sketching stuff.
+The Flutter Scribble package provides a powerful and easy-to-use drawing board for sketching.
 
 Updated Version (1.0.0+1)
 sdk: ">=3.0.0 <4.0.0"
