@@ -1,8 +1,17 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:scribble/scribble.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
+import 'dart:ui' as ui;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -14,6 +23,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
   late ScribbleNotifier notifier;
 
   @override
@@ -117,9 +127,24 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           TextButton(
+            onPressed: () async {
+              final image = await notifier.renderImage();
+              await _shareImage(image.buffer.asUint8List());
+            },
+            child: const Text("Share"),
+          ),
+
+          TextButton(
+            onPressed: () async {
+              final image = await notifier.renderImage();
+              _saveToGallery(image);
+            },
+            child: const Text("Save"),
+          ),
+          TextButton(
             onPressed: Navigator.of(context).pop,
             child: const Text("Close"),
-          )
+          ),
         ],
       ),
     );
@@ -165,10 +190,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildStrokeButton(
-      BuildContext context, {
-        required double strokeWidth,
-        required ScribbleState state,
-      }) {
+    BuildContext context, {
+    required double strokeWidth,
+    required ScribbleState state,
+  }) {
     final selected = state.selectedWidth == strokeWidth;
     return Padding(
       padding: const EdgeInsets.all(4),
@@ -188,7 +213,8 @@ class _HomePageState extends State<HomePage> {
                   erasing: (_) => Colors.transparent,
                 ),
                 border: state.map(
-                  drawing: (_) => null,
+                  drawing: (s) =>
+                      Border.all(width: selected ? 1.5 : 0, color: selected ? Colors.grey.shade500 : Colors.transparent),
                   erasing: (_) => Border.all(width: 1),
                 ),
                 borderRadius: BorderRadius.circular(50.0)),
@@ -199,24 +225,37 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildColorToolbar(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        _buildColorButton(context, color: Colors.black),
-        _buildColorButton(context, color: Colors.red),
-        _buildColorButton(context, color: Colors.green),
-        _buildColorButton(context, color: Colors.blue),
-        _buildColorButton(context, color: Colors.yellow),
-        _buildEraserButton(context),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          _buildEraserButton(context),
+          _buildColorButton(context, color: Colors.black),
+          _buildColorButton(context, color: Colors.red),
+          _buildColorButton(context, color: Colors.green),
+          _buildColorButton(context, color: Colors.blue),
+          _buildColorButton(context, color: Colors.yellow),
+          _buildColorButton(context, color: Colors.teal),
+          _buildColorButton(context, color: Colors.grey),
+          _buildColorButton(context, color: Colors.cyan),
+          _buildColorButton(context, color: Colors.purpleAccent),
+          _buildColorButton(context, color: Colors.orange),
+          _buildColorButton(context, color: Colors.pink),
+          _buildColorButton(context, color: Colors.deepPurple),
+          _buildColorButton(context, color: Colors.lightGreenAccent),
+          _buildColorButton(context, color: Colors.blueGrey),
+          _buildColorButton(context, color: Colors.brown),
+        ],
+      ),
     );
   }
 
   Widget _buildPointerModeSwitcher(BuildContext context) {
     return ValueListenableBuilder(
         valueListenable: notifier.select(
-              (value) => value.allowedPointersMode,
+          (value) => value.allowedPointersMode,
         ),
         builder: (context, value, child) {
           return SegmentedButton<ScribblePointerMode>(
@@ -254,14 +293,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildColorButton(
-      BuildContext context, {
-        required Color color,
-      }) {
+    BuildContext context, {
+    required Color color,
+  }) {
     return ValueListenableBuilder(
-      valueListenable: notifier.select(
-              (value) => value is Drawing && value.selectedColor == color.value),
+      valueListenable: notifier.select((value) => value is Drawing && value.selectedColor == color.value),
       builder: (context, value, child) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: ColorButton(
           color: color,
           isActive: value,
@@ -269,6 +307,52 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  void _saveToGallery(ByteData image) async {
+    bool permissionStatus;
+    final deviceInfo = await DeviceInfoPlugin().androidInfo;
+
+    if (deviceInfo.version.sdkInt > 32) {
+      permissionStatus = await Permission.photos.request().isGranted;
+    } else {
+      permissionStatus = await Permission.storage.request().isGranted;
+    }
+
+    if (permissionStatus) {
+      final result = await ImageGallerySaver.saveImage(image.buffer.asUint8List());
+      debugPrint(result.toString());
+      if (result["isSuccess"] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Image saved to gallery"),
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Image not saved to gallery"),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareImage(Uint8List imageBytes) async {
+    try {
+      // Get the temporary directory
+      final tempDir = await getTemporaryDirectory();
+      // Create a temporary file
+      final file = await File('${tempDir.path}/shared_image.png').create();
+      // Write the image bytes to the file
+      await file.writeAsBytes(imageBytes);
+
+      // Share the image using Share Plus
+      await Share.shareXFiles([XFile(file.path)], text: 'Check out this image!');
+    } catch (e) {
+      debugPrint('Error sharing image: $e');
+    }
   }
 }
 
@@ -311,9 +395,7 @@ class ColorButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: color,
           shape: const CircleBorder(),
-          side: isActive
-              ? const BorderSide(color: Colors.white, width: 2)
-              : const BorderSide(color: Colors.transparent),
+          side: isActive ? const BorderSide(color: Colors.white, width: 2) : const BorderSide(color: Colors.transparent),
         ),
         onPressed: onPressed,
         icon: child ?? const SizedBox(),
@@ -321,4 +403,3 @@ class ColorButton extends StatelessWidget {
     );
   }
 }
-
