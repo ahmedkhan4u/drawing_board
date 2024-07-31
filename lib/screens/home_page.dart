@@ -163,6 +163,20 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: jsonEncode(notifier.currentSketch.toJson()),
+              ));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Sketch data copied"),
+                ),
+              );
+              Navigator.pop(context);
+            },
+            child: const Text("Copy"),
+          ),
+
+          TextButton(
             onPressed: Navigator.of(context).pop,
             child: const Text("Close"),
           )
