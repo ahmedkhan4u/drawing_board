@@ -1,4 +1,5 @@
 import 'package:drawing_board/screens/home_page.dart';
+import 'package:drawing_board/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const HomePage(title: 'Scribble'),
+      home: const SplashScreen(),
     );
   }
 }
